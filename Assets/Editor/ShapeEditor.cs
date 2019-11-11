@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
-
+using Sebastian.Geometry;
 
 [CustomEditor(typeof(ShapeCreator))]
 public class ShapeEditor : Editor
@@ -12,21 +12,92 @@ public class ShapeEditor : Editor
     SelectionInfo selectionInfo;
 
     //to fix the problem of not showing newly created points
-    bool needsRepaint;
+    bool shapeChangedSinceLastRepaint;
 
 
 
     //`target` is this editor
     private void OnEnable()
     {
+        shapeChangedSinceLastRepaint = true;
         shapeCreator = target as ShapeCreator;
         selectionInfo = new SelectionInfo();
         Undo.undoRedoPerformed += OnUndoOrRedo;
+
+        //Hide the axis gizmo
+        Tools.hidden = true;
     }
 
     private void OnDisable()
     {
         Undo.undoRedoPerformed -= OnUndoOrRedo;
+        Tools.hidden = false;
+    }
+
+
+    public override void OnInspectorGUI()
+    {
+        base.OnInspectorGUI();
+
+        string msg = "Click to add point\nShift-Click on empty space to create new shape\nShift-Click on a point to delete";
+        EditorGUILayout.HelpBox(msg, MessageType.Info);
+
+        int deleteShapeIndex = -1;
+
+        shapeCreator.showShapeList = EditorGUILayout.Foldout(shapeCreator.showShapeList, "Show List of Shapes");
+        if (shapeCreator.showShapeList) {
+            for (int i = 0; i < shapeCreator.shapes.Count; i++)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("#" + (i + 1) + ": " + shapeCreator.shapes[i].points.Count);
+
+                GUI.enabled = i != selectionInfo.selectedShapeIndex;
+                if (GUILayout.Button("Select"))
+                {
+                    selectionInfo.selectedShapeIndex = i;
+                }
+                GUI.enabled = true;
+
+                if (GUILayout.Button("Delete"))
+                {
+                    deleteShapeIndex = i;
+                }
+                GUILayout.EndHorizontal();
+            }
+
+            GUI.enabled = shapeCreator.shapes.Count > 0;
+            if (GUILayout.Button("Delete All"))
+            {
+                deleteShapeIndex = -2;
+            }
+            GUI.enabled = true;
+        }
+
+        if (deleteShapeIndex > -1)
+        {
+            Undo.RecordObject(shapeCreator, "Delete Shape");
+            shapeCreator.shapes.RemoveAt(deleteShapeIndex);
+            selectionInfo.selectedShapeIndex = Mathf.Clamp(selectionInfo.selectedShapeIndex, 0, shapeCreator.shapes.Count - 1);
+        }
+
+        //delete all shapes
+        if (deleteShapeIndex == -2)
+        {
+            for (int i = 0; i < shapeCreator.shapes.Count; i++)
+            {
+                Undo.RecordObject(shapeCreator, "Delete Shape");
+                shapeCreator.shapes.RemoveAt(i);
+                selectionInfo.selectedShapeIndex = Mathf.Clamp(selectionInfo.selectedShapeIndex, 0, shapeCreator.shapes.Count - 1);
+            }
+        }
+
+
+        //Force scene view to repaint
+        if (GUI.changed)
+        {
+            shapeChangedSinceLastRepaint = true;
+            SceneView.RepaintAll();
+        }
     }
 
 
@@ -50,10 +121,10 @@ public class ShapeEditor : Editor
             HandleInput(guiEvent);
 
             //Repaint the current view
-            if (needsRepaint)
+            if (shapeChangedSinceLastRepaint)
             {
                 HandleUtility.Repaint();
-                needsRepaint = false;
+                shapeChangedSinceLastRepaint = false;
             }
         }
     }
@@ -98,7 +169,12 @@ public class ShapeEditor : Editor
             }
         }
 
-        needsRepaint = true;
+        if (shapeChangedSinceLastRepaint)
+        {
+            shapeCreator.UpdateMeshDisplay();
+        }
+
+        shapeChangedSinceLastRepaint = true;
     }
 
 
@@ -166,7 +242,7 @@ public class ShapeEditor : Editor
         selectionInfo.pointIndex = newPointIndex;
         selectionInfo.mouseOverShapeIndex = selectionInfo.selectedShapeIndex;
 
-        needsRepaint = true;
+        shapeChangedSinceLastRepaint = true;
 
         SelectPointUnderMouse();
     }
@@ -210,7 +286,7 @@ public class ShapeEditor : Editor
 
             selectionInfo.pointIsSelected = false;
             selectionInfo.pointIndex = -1;
-            needsRepaint = true;
+            shapeChangedSinceLastRepaint = true;
         }
     }
 
@@ -219,15 +295,25 @@ public class ShapeEditor : Editor
         if (selectionInfo.pointIsSelected)
         {
             SelectedShape.points[selectionInfo.pointIndex] = mousePosition;
-            needsRepaint = true;
+            shapeChangedSinceLastRepaint = true;
         }
     }
 
 
+    //If it is Shift+Left Click is pressed on an empty space, it creates a new shape
+    // otherwise, it deletes the point
     void HandleShiftLeftMouseDown(Vector3 mousePosition)
     {
-        CreateNewShape();
-        CreateNewPoint(mousePosition);
+        if (selectionInfo.mouseIsOverPoint)
+        {
+            SelectPointUnderMouse();
+            DeletePointUnderMouse();
+        }
+        else
+        {
+            CreateNewShape();
+            CreateNewPoint(mousePosition);
+        }
     }
 
 
@@ -236,7 +322,7 @@ public class ShapeEditor : Editor
         if(selectionInfo.mouseOverShapeIndex != -1)
         {
             selectionInfo.selectedShapeIndex = selectionInfo.mouseOverShapeIndex;
-            needsRepaint = true;
+            shapeChangedSinceLastRepaint = true;
         }
     }
 
@@ -265,7 +351,7 @@ public class ShapeEditor : Editor
             selectionInfo.pointIndex = mouseOverPointIndex;
             selectionInfo.mouseIsOverPoint = mouseOverPointIndex != -1;
             selectionInfo.mouseOverShapeIndex = mouseOverShapeIndex;
-            needsRepaint = true;
+            shapeChangedSinceLastRepaint = true;
         }
 
         if (selectionInfo.mouseIsOverPoint)
@@ -305,19 +391,32 @@ public class ShapeEditor : Editor
                 selectionInfo.lineIndex = mouseOverLineIndex;
                 selectionInfo.mouseIsOverLine = mouseOverLineIndex != -1;
                 selectionInfo.mouseOverShapeIndex = mouseOverShapeIndex;
-                needsRepaint = true;
+                shapeChangedSinceLastRepaint = true;
             }
         }
+    }
+
+
+
+    void DeletePointUnderMouse()
+    {
+        Undo.RecordObject(shapeCreator, "Delete Point");
+        SelectedShape.points.RemoveAt(selectionInfo.pointIndex);
+        selectionInfo.mouseIsOverPoint = false;
+        selectionInfo.pointIsSelected = false;
+        shapeChangedSinceLastRepaint = true;
     }
 
 
     //If I undo alot, so the shape counter is decreased, I have to set the active shape to tha last one,
     // otherwise there will be Out Of Range exception
     void OnUndoOrRedo() {
-        if(selectionInfo.selectedShapeIndex >= shapeCreator.shapes.Count)
+        if(selectionInfo.selectedShapeIndex >= shapeCreator.shapes.Count || selectionInfo.selectedShapeIndex == -1)
         {
             selectionInfo.selectedShapeIndex = shapeCreator.shapes.Count - 1;
         }
+
+        shapeChangedSinceLastRepaint = true;
     }
 
 

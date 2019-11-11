@@ -6,5 +6,14 @@
 - Undoable object
 
 02
-- Replacing current points
+- Moving current points
 - Adding new points between two points
+
+03
+- Multiple shapes
+- Edit each shape separately
+- Some bugs fixed
+
+04
+- Improving Editor GUI
+- Creating shape out of the points
