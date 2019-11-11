@@ -7,6 +7,8 @@ public class ShapeCreator : MonoBehaviour
 
     [HideInInspector]
     public List<Vector3> points = new List<Vector3>();
+
+    public float handleRadius = 0.5f;
     
     // Start is called before the first frame update
     void Start()
