@@ -83,11 +83,13 @@ public class ShapeEditor : Editor
         //delete all shapes
         if (deleteShapeIndex == -2)
         {
-            for (int i = 0; i < shapeCreator.shapes.Count; i++)
+
+            for (int i = shapeCreator.shapes.Count - 1; i >= 0 ; i--)
             {
-                Undo.RecordObject(shapeCreator, "Delete Shape");
+                Undo.RecordObject(shapeCreator, "Delete All Shapes");
                 shapeCreator.shapes.RemoveAt(i);
-                selectionInfo.selectedShapeIndex = Mathf.Clamp(selectionInfo.selectedShapeIndex, 0, shapeCreator.shapes.Count - 1);
+                selectionInfo.selectedShapeIndex = 0;
+                Debug.Log("deleted " + i);
             }
         }
 

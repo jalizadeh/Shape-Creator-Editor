@@ -1,19 +1,31 @@
 # Shape Creator/Editor
 
-01
-- Converting Vector2 point to Vector3 point
-- Setting points in the scene with their connection
-- Undoable object
+This project is developed to be used in Editor mode. So most of the functionalities and results can be used for later usages like creating lands, terrains or walkable areas.
 
-02
-- Moving current points
-- Adding new points between two points
 
-03
-- Multiple shapes
-- Edit each shape separately
-- Some bugs fixed
+### Progress Images
+Simple shape with multiple points
+![](images/se01.jpg)
 
-04
-- Improving Editor GUI
-- Creating shape out of the points
+Points can be moved or be added
+![](images/se02.jpg)
+
+Multiple shapes
+![](images/se03.jpg)
+
+Renderable shapes and improved Editor GUI
+![](images/se01.jpg)
+
+
+### Features
+- Adding points (Left Click)
+- Adding points directly between 2 other points
+- Deleting point (Shift + Left Click)
+- Moving selected point
+- Creating multiple shapes (Shift + Click on empty space)
+- Converting lines to renderable shapes
+- All actions are undoable
+
+
+### Other
+With special thanks to [Sebastian Lague](https://www.youtube.com/playlist?list=PLFt_AvWsXl0f_rlmTWiSPs8EXVuEnyB1h)
