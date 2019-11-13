@@ -80,7 +80,8 @@ public class ShapeEditor : Editor
             selectionInfo.selectedShapeIndex = Mathf.Clamp(selectionInfo.selectedShapeIndex, 0, shapeCreator.shapes.Count - 1);
         }
 
-        //delete all shapes
+        // Delete all shapes
+        // it deletes from the last shape to the first
         if (deleteShapeIndex == -2)
         {
 

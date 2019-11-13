@@ -14,7 +14,7 @@ Multiple shapes
 ![](images/se03.jpg)
 
 Renderable shapes and improved Editor GUI
-![](images/se01.jpg)
+![](images/se04.jpg)
 
 
 ### Features
